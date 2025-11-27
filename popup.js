@@ -209,6 +209,11 @@ function escapeHtml(text) {
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   
+  // Auto-refresh every 5 seconds
+  setInterval(() => {
+    loadData();
+  }, 5000);
+  
   // Tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {

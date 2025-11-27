@@ -632,25 +632,25 @@
       <div class="setting-group">
         <div class="setting-label">
           <span>🟢 Fresh threshold</span>
-          <span class="setting-value" id="freshValue">30 min</span>
+          <span class="setting-value" id="freshValue">5 min</span>
         </div>
-        <input type="range" class="slider fresh" id="freshSlider" min="5" max="120" value="30">
+        <input type="range" class="slider fresh" id="freshSlider" min="1" max="120" value="5">
       </div>
       
       <div class="setting-group">
         <div class="setting-label">
           <span>🟠 Stale threshold</span>
-          <span class="setting-value" id="staleValue">2 hr</span>
+          <span class="setting-value" id="staleValue">30 min</span>
         </div>
-        <input type="range" class="slider stale" id="staleSlider" min="30" max="480" value="120">
+        <input type="range" class="slider stale" id="staleSlider" min="2" max="480" value="30">
       </div>
       
       <div class="setting-group">
         <div class="setting-label">
           <span>🔴 Old threshold</span>
-          <span class="setting-value" id="oldValue">8 hr</span>
+          <span class="setting-value" id="oldValue">1 hr</span>
         </div>
-        <input type="range" class="slider old" id="oldSlider" min="60" max="1440" value="480">
+        <input type="range" class="slider old" id="oldSlider" min="5" max="1440" value="60">
       </div>
       
       <div class="setting-group">
@@ -667,14 +667,14 @@
             </div>
             <div class="style-name">Dot</div>
           </div>
-          <div class="style-option" data-style="ring">
+          <div class="style-option" data-style="frame">
             <div class="style-icon">
               <svg width="20" height="20" viewBox="0 0 20 20">
                 <rect x="4" y="4" width="12" height="12" rx="2" fill="#374151"/>
-                <circle cx="10" cy="10" r="8" stroke="#22c55e" stroke-width="2" fill="none"/>
+                <rect x="1" y="1" width="18" height="18" rx="4" stroke="#22c55e" stroke-width="2" fill="none"/>
               </svg>
             </div>
-            <div class="style-name">Ring</div>
+            <div class="style-name">Frame</div>
           </div>
           <div class="style-option" data-style="badge">
             <div class="style-icon">

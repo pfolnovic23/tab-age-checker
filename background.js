@@ -2,12 +2,12 @@
 // Tracks when tabs were last active and updates their favicons with age indicators
 
 const DEFAULT_SETTINGS = {
-  freshThreshold: 30,      // minutes - green zone
-  staleThreshold: 120,     // minutes - yellow/orange zone  
-  oldThreshold: 480,       // minutes - red zone (8 hours)
+  freshThreshold: 5,       // minutes - green zone
+  staleThreshold: 30,      // minutes - yellow/orange zone  
+  oldThreshold: 60,        // minutes - red zone (1 hour)
   enabled: true,
-  indicatorStyle: 'dot',   // 'dot', 'ring', or 'badge'
-  indicatorSize: 8
+  indicatorStyle: 'dot',   // 'dot', 'frame', or 'badge'
+  indicatorSize: 12
 };
 
 // In-memory store for tab data
@@ -15,9 +15,9 @@ let tabData = {};
 let settings = { ...DEFAULT_SETTINGS };
 
 // Color interpolation in HSL space for smooth gradients
-function getAgeColor(minutesInactive) {
-  // Green (120°) -> Yellow (60°) -> Orange (30°) -> Red (0°)
-  const { freshThreshold, staleThreshold, oldThreshold } = settings;
+// Pass thresholds as parameters to ensure fresh values are used
+function getAgeColor(minutesInactive, freshThreshold, staleThreshold, oldThreshold) {
+  // Green (140°) -> Yellow (60°) -> Orange (30°) -> Red (0°)
   
   let hue, saturation, lightness;
   
@@ -45,17 +45,25 @@ function getAgeColor(minutesInactive) {
     lightness = 40;
   }
   
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
 }
 
 // Convert HSL to hex for canvas operations
 function hslToHex(hslString) {
-  const match = hslString.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-  if (!match) return '#22c55e';
+  // Regex handles integers or decimals: hsl(140, 70%, 45%) or hsl(119.5, 73.1%, 46.0%)
+  const match = hslString.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)/);
+  if (!match) {
+    console.error('[TabAge] Failed to parse HSL:', hslString);
+    return '#22c55e';
+  }
   
-  let h = parseInt(match[1]) / 360;
-  let s = parseInt(match[2]) / 100;
-  let l = parseInt(match[3]) / 100;
+  const hDeg = parseFloat(match[1]);
+  const sPct = parseFloat(match[2]);
+  const lPct = parseFloat(match[3]);
+  
+  let h = hDeg / 360;
+  let s = sPct / 100;
+  let l = lPct / 100;
   
   let r, g, b;
   if (s === 0) {
@@ -81,7 +89,9 @@ function hslToHex(hslString) {
     return hex.length === 1 ? '0' + hex : hex;
   };
   
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  const result = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  console.log('[TabAge] HSL->Hex:', hslString, '->', result, '(h:', hDeg, 's:', sPct, 'l:', lPct, ')');
+  return result;
 }
 
 // Initialize extension
@@ -132,9 +142,12 @@ async function saveSettings() {
 
 // Update the visual indicator for a tab
 async function updateTabIndicator(tabId) {
-  // Re-read settings from storage to ensure freshness
+  // ALWAYS re-read settings from storage to ensure we have the latest values
   const stored = await chrome.storage.local.get(['settings']);
   const currentSettings = stored.settings ? { ...DEFAULT_SETTINGS, ...stored.settings } : settings;
+  
+  // Also update the in-memory settings
+  settings = currentSettings;
   
   if (!currentSettings.enabled) return;
   
@@ -142,14 +155,24 @@ async function updateTabIndicator(tabId) {
   if (!data) return;
   
   const minutesInactive = (Date.now() - data.lastActiveAt) / (1000 * 60);
-  const color = getAgeColor(minutesInactive);
+  
+  // Pass thresholds directly to ensure color calculation uses fresh values
+  const color = getAgeColor(
+    minutesInactive, 
+    currentSettings.freshThreshold, 
+    currentSettings.staleThreshold, 
+    currentSettings.oldThreshold
+  );
   const hexColor = hslToHex(color);
   
-  console.log('[TabAge] Updating tab', tabId, 'with style:', currentSettings.indicatorStyle);
+  console.log('[TabAge] Tab', tabId, '- inactive:', minutesInactive.toFixed(1), 'min, thresholds:', 
+    currentSettings.freshThreshold, '/', currentSettings.staleThreshold, '/', currentSettings.oldThreshold,
+    '- color:', hexColor, '- style:', currentSettings.indicatorStyle);
   
   try {
     const tab = await chrome.tabs.get(tabId);
-    if (!tab || tab.url?.startsWith('chrome://') || tab.url?.startsWith('chrome-extension://')) {
+    if (!tab || tab.url?.startsWith('chrome://') || tab.url?.startsWith('chrome-extension://') || 
+        tab.url?.startsWith('brave://') || tab.url?.startsWith('about:')) {
       return;
     }
     
@@ -201,35 +224,44 @@ function addFaviconIndicator(color, style, size, minutesInactive) {
     
     // Draw indicator based on style
     if (style === 'dot') {
-      // Bottom-right dot
+      // Bottom-right dot - bigger and bolder
+      const dotSize = Math.max(size, 10);
       ctx.beginPath();
-      ctx.arc(32 - size/2 - 1, 32 - size/2 - 1, size/2, 0, Math.PI * 2);
+      ctx.arc(32 - dotSize/2 - 1, 32 - dotSize/2 - 1, dotSize/2, 0, Math.PI * 2);
       ctx.fillStyle = color;
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
       ctx.stroke();
-    } else if (style === 'ring') {
-      // Ring around the icon
-      ctx.beginPath();
-      ctx.arc(16, 16, 14, 0, Math.PI * 2);
+    } else if (style === 'frame') {
+      // Rounded square frame around the icon
       ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(2, 2, 28, 28, 6);
+      } else {
+        ctx.rect(2, 2, 28, 28);
+      }
       ctx.stroke();
     } else if (style === 'badge') {
-      // Top-right badge with time
+      // Top-right badge with time - bigger
       const hours = Math.floor(minutesInactive / 60);
       const text = hours > 0 ? `${hours}h` : `${Math.floor(minutesInactive)}m`;
       
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.roundRect(14, 0, 18, 12, 2);
+      if (ctx.roundRect) {
+        ctx.roundRect(10, 0, 22, 14, 3);
+      } else {
+        ctx.rect(10, 0, 22, 14);
+      }
       ctx.fill();
       
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 9px sans-serif';
+      ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(text, 23, 9);
+      ctx.fillText(text, 21, 11);
     }
     
     // Update favicon
@@ -254,27 +286,39 @@ function addFaviconIndicator(color, style, size, minutesInactive) {
     ctx.fillRect(0, 0, 32, 32);
     
     if (style === 'dot') {
+      const dotSize = Math.max(size, 10);
       ctx.beginPath();
-      ctx.arc(32 - size/2 - 1, 32 - size/2 - 1, size/2, 0, Math.PI * 2);
+      ctx.arc(32 - dotSize/2 - 1, 32 - dotSize/2 - 1, dotSize/2, 0, Math.PI * 2);
       ctx.fillStyle = color;
       ctx.fill();
-    } else if (style === 'ring') {
-      ctx.beginPath();
-      ctx.arc(16, 16, 14, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (style === 'frame') {
       ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(2, 2, 28, 28, 6);
+      } else {
+        ctx.rect(2, 2, 28, 28);
+      }
       ctx.stroke();
     } else if (style === 'badge') {
       const hours = Math.floor(minutesInactive / 60);
       const text = hours > 0 ? `${hours}h` : `${Math.floor(minutesInactive)}m`;
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.roundRect(14, 0, 18, 12, 2);
+      if (ctx.roundRect) {
+        ctx.roundRect(10, 0, 22, 14, 3);
+      } else {
+        ctx.rect(10, 0, 22, 14);
+      }
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 9px sans-serif';
+      ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(text, 23, 9);
+      ctx.fillText(text, 21, 11);
     }
     
     // Remove any remaining favicons
@@ -346,15 +390,16 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   await saveTabData();
 });
 
-// Periodic update of all tab indicators
+// Periodic update of all tab indicators (every 30 seconds for more responsive color changes)
 setInterval(async () => {
   if (!settings.enabled) return;
   
+  console.log('[TabAge] Periodic update starting...');
   const tabs = await chrome.tabs.query({});
   for (const tab of tabs) {
     await updateTabIndicator(tab.id);
   }
-}, 60000); // Update every minute
+}, 30000); // Update every 30 seconds
 
 // Handle keyboard commands
 chrome.commands.onCommand.addListener(async (command) => {
@@ -418,20 +463,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   if (message.type === 'updateSettings') {
-    // Update in-memory settings first
-    settings = { ...settings, ...message.settings };
-    console.log('[TabAge] Settings updated:', settings.indicatorStyle);
+    console.log('[TabAge] Received settings update:', JSON.stringify(message.settings));
     
-    // Persist to storage, then update all tabs sequentially
     (async () => {
-      await chrome.storage.local.set({ settings });
-      console.log('[TabAge] Settings saved to storage');
+      // Merge with current settings
+      const newSettings = { ...settings, ...message.settings };
       
+      // Update in-memory settings FIRST
+      settings = newSettings;
+      
+      // Persist to storage
+      await chrome.storage.local.set({ settings: newSettings });
+      console.log('[TabAge] Settings saved - fresh:', newSettings.freshThreshold, 
+        'stale:', newSettings.staleThreshold, 'old:', newSettings.oldThreshold,
+        'style:', newSettings.indicatorStyle);
+      
+      // Small delay to ensure storage is fully written
+      await new Promise(r => setTimeout(r, 50));
+      
+      // Update all tabs with new settings
       const tabs = await chrome.tabs.query({});
-      // Update tabs sequentially to avoid race conditions
+      console.log('[TabAge] Updating', tabs.length, 'tabs with new settings');
+      
       for (const tab of tabs) {
         await updateTabIndicator(tab.id);
       }
+      
       sendResponse({ success: true });
     })();
     return true;
