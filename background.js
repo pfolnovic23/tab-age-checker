@@ -7,12 +7,18 @@ const DEFAULT_SETTINGS = {
   oldThreshold: 3,         // minutes - red zone (3 min)
   enabled: true,
   indicatorStyle: 'dot',   // 'dot', 'frame', or 'badge'
-  indicatorSize: 12
+  indicatorSize: 12,
+  autoDeleteEnabled: false, // Auto-delete old tabs
+  autoDeleteThreshold: 60   // minutes before auto-delete
 };
 
 // In-memory store for tab data
 let tabData = {};
 let settings = { ...DEFAULT_SETTINGS };
+
+// Deleted tabs history
+let deletedTabs = [];
+const MAX_DELETED_HISTORY = 50;
 
 // Color interpolation in HSL space for smooth gradients
 // Pass thresholds as parameters to ensure fresh values are used
@@ -97,12 +103,15 @@ function hslToHex(hslString) {
 // Initialize extension
 async function init() {
   // Load settings
-  const stored = await chrome.storage.local.get(['settings', 'tabData']);
+  const stored = await chrome.storage.local.get(['settings', 'tabData', 'deletedTabs']);
   if (stored.settings) {
     settings = { ...DEFAULT_SETTINGS, ...stored.settings };
   }
   if (stored.tabData) {
     tabData = stored.tabData;
+  }
+  if (stored.deletedTabs) {
+    deletedTabs = stored.deletedTabs;
   }
   
   // Initialize all existing tabs
@@ -138,6 +147,35 @@ async function saveTabData() {
 // Save settings to storage
 async function saveSettings() {
   await chrome.storage.local.set({ settings });
+}
+
+// Save deleted tabs to storage
+async function saveDeletedTabs() {
+  await chrome.storage.local.set({ deletedTabs });
+}
+
+// Save tab to deleted history before closing
+async function saveToDeletedHistory(tab, tabInfo) {
+  const historyEntry = {
+    id: Date.now(), // unique ID for the history entry
+    url: tab.url,
+    title: tab.title || 'Untitled',
+    favicon: tab.favIconUrl || '',
+    deletedAt: Date.now(),
+    lastActiveAt: tabInfo?.lastActiveAt || Date.now(),
+    autoDeleted: false // will be set to true if auto-deleted
+  };
+  
+  // Add to beginning of array
+  deletedTabs.unshift(historyEntry);
+  
+  // Keep only the most recent entries
+  if (deletedTabs.length > MAX_DELETED_HISTORY) {
+    deletedTabs = deletedTabs.slice(0, MAX_DELETED_HISTORY);
+  }
+  
+  await saveDeletedTabs();
+  return historyEntry;
 }
 
 // Update the visual indicator for a tab
@@ -398,7 +436,45 @@ setInterval(async () => {
   for (const tab of tabs) {
     await updateTabIndicator(tab.id);
   }
+  
+  // Auto-delete check
+  if (settings.autoDeleteEnabled) {
+    await autoDeleteOldTabs();
+  }
 }, 5000); // Update every 5 seconds
+
+// Auto-delete old tabs based on autoDeleteThreshold
+async function autoDeleteOldTabs() {
+  const tabs = await chrome.tabs.query({});
+  const now = Date.now();
+  const thresholdMs = settings.autoDeleteThreshold * 60 * 1000;
+  
+  for (const tab of tabs) {
+    const data = tabData[tab.id];
+    if (!data) continue;
+    
+    // Skip active tab, pinned tabs, and special URLs
+    if (tab.active || tab.pinned) continue;
+    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || 
+        tab.url.startsWith('brave://') || tab.url.startsWith('edge://') || tab.url === 'about:blank') continue;
+    
+    const inactiveTime = now - data.lastActiveAt;
+    if (inactiveTime > thresholdMs) {
+      // Save to history before deleting
+      const historyEntry = await saveToDeletedHistory(tab, data);
+      historyEntry.autoDeleted = true;
+      await saveDeletedTabs();
+      
+      // Close the tab
+      try {
+        await chrome.tabs.remove(tab.id);
+        console.log('[TabAge] Auto-deleted tab:', tab.title);
+      } catch (e) {
+        console.error('[TabAge] Failed to auto-delete tab:', e);
+      }
+    }
+  }
+}
 
 // Handle keyboard commands
 chrome.commands.onCommand.addListener(async (command) => {
@@ -438,6 +514,11 @@ async function closeOldTabs() {
     if (!data) return false;
     return (now - data.lastActiveAt) > thresholdMs && !tab.active;
   });
+  
+  // Save each tab to history before closing
+  for (const tab of tabsToClose) {
+    await saveToDeletedHistory(tab, tabData[tab.id]);
+  }
   
   if (tabsToClose.length > 0) {
     await chrome.tabs.remove(tabsToClose.map(t => t.id));
@@ -504,7 +585,49 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   if (message.type === 'closeTab') {
-    chrome.tabs.remove(message.tabId).then(() => sendResponse({ success: true }));
+    (async () => {
+      // Get tab info before closing to save to history
+      try {
+        const tab = await chrome.tabs.get(message.tabId);
+        await saveToDeletedHistory(tab, tabData[message.tabId]);
+      } catch (e) {
+        console.log('[TabAge] Could not get tab info for history:', e);
+      }
+      await chrome.tabs.remove(message.tabId);
+      sendResponse({ success: true });
+    })();
+    return true;
+  }
+  
+  if (message.type === 'getDeletedTabs') {
+    sendResponse({ deletedTabs });
+    return true;
+  }
+  
+  if (message.type === 'reopenTab') {
+    (async () => {
+      const entry = deletedTabs.find(t => t.id === message.entryId);
+      if (entry) {
+        // Create new tab with the URL
+        await chrome.tabs.create({ url: entry.url });
+        // Remove from history
+        deletedTabs = deletedTabs.filter(t => t.id !== message.entryId);
+        await saveDeletedTabs();
+      }
+      sendResponse({ success: true });
+    })();
+    return true;
+  }
+  
+  if (message.type === 'removeFromHistory') {
+    deletedTabs = deletedTabs.filter(t => t.id !== message.entryId);
+    saveDeletedTabs().then(() => sendResponse({ success: true }));
+    return true;
+  }
+  
+  if (message.type === 'clearDeletedHistory') {
+    deletedTabs = [];
+    saveDeletedTabs().then(() => sendResponse({ success: true }));
     return true;
   }
 });

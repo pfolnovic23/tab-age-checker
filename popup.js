@@ -2,6 +2,7 @@
 
 let tabsData = [];
 let settings = {};
+let deletedTabsData = [];
 
 // Format time duration with seconds precision
 function formatDuration(minutes) {
@@ -16,6 +17,22 @@ function formatDuration(minutes) {
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
   return `${days}d ${hours}h`;
+}
+
+// Format time ago for history items
+function formatTimeAgo(timestamp) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (seconds < 60) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days === 1) return 'yesterday';
+  return `${days} days ago`;
 }
 
 // Format slider value
@@ -162,6 +179,72 @@ function updateStats() {
   document.getElementById('oldestTitle').textContent = oldestTab ? (oldestTab.title || 'Untitled').substring(0, 40) : '-';
 }
 
+// Load deleted tabs history
+async function loadDeletedTabs() {
+  const response = await chrome.runtime.sendMessage({ type: 'getDeletedTabs' });
+  deletedTabsData = response.deletedTabs || [];
+  renderHistory();
+}
+
+// Render history list
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  
+  if (deletedTabsData.length === 0) {
+    container.innerHTML = `
+      <div class="history-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+        <div>No recently closed tabs</div>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = deletedTabsData.map(entry => {
+    const timeAgo = formatTimeAgo(entry.deletedAt);
+    const autoDeleteBadge = entry.autoDeleted ? '<span class="auto-badge">AUTO</span>' : '';
+    
+    return `
+      <div class="history-item ${entry.autoDeleted ? 'auto-deleted' : ''}" data-entry-id="${entry.id}">
+        <img class="history-favicon" src="${entry.favicon || 'icons/icon16.png'}" onerror="this.src='icons/icon16.png'">
+        <div class="history-info">
+          <div class="history-title-text">${escapeHtml(entry.title || 'Untitled')}</div>
+          <div class="history-meta">
+            <span>${timeAgo}</span>
+            ${autoDeleteBadge}
+          </div>
+        </div>
+        <div class="history-actions">
+          <button class="btn-reopen" data-reopen-id="${entry.id}">Reopen</button>
+          <button class="btn-remove" data-remove-id="${entry.id}">×</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // Add click handlers for reopen buttons
+  container.querySelectorAll('.btn-reopen').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const entryId = parseInt(btn.dataset.reopenId);
+      await chrome.runtime.sendMessage({ type: 'reopenTab', entryId });
+      loadDeletedTabs();
+    });
+  });
+  
+  // Add click handlers for remove buttons
+  container.querySelectorAll('.btn-remove').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const entryId = parseInt(btn.dataset.removeId);
+      await chrome.runtime.sendMessage({ type: 'removeFromHistory', entryId });
+      loadDeletedTabs();
+    });
+  });
+}
+
 // Load data from background
 async function loadData() {
   const response = await chrome.runtime.sendMessage({ type: 'getTabData' });
@@ -171,6 +254,7 @@ async function loadData() {
   renderTabs();
   updateStats();
   updateSettingsUI();
+  loadDeletedTabs();
 }
 
 // Update settings UI
@@ -195,6 +279,22 @@ function updateSettingsUI() {
   document.querySelectorAll('.style-option').forEach(opt => {
     opt.classList.toggle('active', opt.dataset.style === (settings.indicatorStyle || 'dot'));
   });
+  
+  // Update auto-delete settings
+  const autoDeleteToggle = document.getElementById('autoDeleteToggle');
+  const autoDeleteSettings = document.getElementById('autoDeleteSettings');
+  const autoDeleteSlider = document.getElementById('autoDeleteSlider');
+  
+  if (settings.autoDeleteEnabled) {
+    autoDeleteToggle.classList.add('active');
+    autoDeleteSettings.classList.add('visible');
+  } else {
+    autoDeleteToggle.classList.remove('active');
+    autoDeleteSettings.classList.remove('visible');
+  }
+  
+  autoDeleteSlider.value = settings.autoDeleteThreshold || 60;
+  document.getElementById('autoDeleteValue').textContent = formatSliderValue(settings.autoDeleteThreshold || 60);
 }
 
 // Save settings
@@ -285,5 +385,32 @@ document.addEventListener('DOMContentLoaded', () => {
       opt.classList.add('active');
       saveSettings({ indicatorStyle: opt.dataset.style });
     });
+  });
+  
+  // Auto-delete toggle
+  document.getElementById('autoDeleteToggle').addEventListener('click', () => {
+    const toggle = document.getElementById('autoDeleteToggle');
+    const settingsDiv = document.getElementById('autoDeleteSettings');
+    const enabled = !toggle.classList.contains('active');
+    toggle.classList.toggle('active', enabled);
+    settingsDiv.classList.toggle('visible', enabled);
+    saveSettings({ autoDeleteEnabled: enabled });
+  });
+  
+  // Auto-delete slider
+  document.getElementById('autoDeleteSlider').addEventListener('input', (e) => {
+    const value = parseInt(e.target.value);
+    document.getElementById('autoDeleteValue').textContent = formatSliderValue(value);
+  });
+  
+  document.getElementById('autoDeleteSlider').addEventListener('change', (e) => {
+    saveSettings({ autoDeleteThreshold: parseInt(e.target.value) });
+  });
+  
+  // Clear history button
+  document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
+    if (deletedTabsData.length === 0) return;
+    await chrome.runtime.sendMessage({ type: 'clearDeletedHistory' });
+    loadDeletedTabs();
   });
 });

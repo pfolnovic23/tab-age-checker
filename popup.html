@@ -323,12 +323,13 @@
     }
     
     .btn-primary {
-      background: var(--accent);
-      color: white;
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
     }
     
     .btn-primary:hover {
-      background: #2563eb;
+      background: rgba(34, 197, 94, 0.25);
     }
     
     .btn-danger {
@@ -359,6 +360,23 @@
       align-items: center;
       justify-content: space-between;
     }
+    
+    .threshold-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .threshold-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .threshold-dot.fresh { background: var(--fresh); box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+    .threshold-dot.stale { background: var(--stale); box-shadow: 0 0 6px rgba(251, 191, 36, 0.5); }
+    .threshold-dot.old { background: var(--old); box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
     
     .setting-value {
       font-family: 'JetBrains Mono', monospace;
@@ -551,6 +569,268 @@
       margin-bottom: 12px;
       opacity: 0.5;
     }
+    
+    /* History Panel Styles */
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+    
+    .history-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .btn-clear-history {
+      padding: 4px 10px;
+      font-size: 11px;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .btn-clear-history:hover {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+    
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    
+    .history-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      gap: 10px;
+      transition: background 0.15s;
+    }
+    
+    .history-item:hover {
+      background: var(--bg-tertiary);
+    }
+    
+    .history-item.auto-deleted {
+      border-left: 3px solid var(--danger);
+    }
+    
+    .history-favicon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    
+    .history-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .history-title-text {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .history-meta {
+      display: flex;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    
+    .history-meta .auto-badge {
+      color: var(--danger);
+      font-weight: 600;
+    }
+    
+    .history-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    
+    .history-actions button {
+      padding: 4px 8px;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    
+    .btn-reopen {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-reopen:hover {
+      background: var(--primary-hover);
+    }
+    
+    .btn-remove {
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+    }
+    
+    .btn-remove:hover {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .history-empty {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    
+    .history-empty svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    
+    /* Auto-delete settings styles */
+    .auto-delete-group {
+      margin-top: 16px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.03) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+    }
+    
+    .auto-delete-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    
+    .auto-delete-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .auto-delete-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .auto-delete-icon svg {
+      width: 18px;
+      height: 18px;
+      color: white;
+    }
+    
+    .auto-delete-text h3 {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text-primary);
+    }
+    
+    .auto-delete-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin: 2px 0 0 0;
+    }
+    
+    .auto-delete-settings {
+      display: none;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(239, 68, 68, 0.15);
+    }
+    
+    .auto-delete-settings.visible {
+      display: block;
+    }
+    
+    .auto-delete-slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .auto-delete-slider-container .slider {
+      flex: 1;
+    }
+    
+    .auto-delete-value {
+      min-width: 60px;
+      padding: 6px 10px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--danger);
+      text-align: center;
+    }
+    
+    .setting-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 12px;
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    
+    .setting-hint svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      opacity: 0.6;
+    }
+    
+    .slider.danger {
+      height: 6px;
+      background: var(--bg-tertiary);
+    }
+    
+    .slider.danger::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+      cursor: pointer;
+      border: 2px solid var(--bg-primary);
+    }
+    
+    .slider.danger::-webkit-slider-runnable-track {
+      height: 6px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+    }
   </style>
 </head>
 <body>
@@ -570,6 +850,7 @@
   
   <div class="tabs-nav">
     <button class="tab-btn active" data-tab="tabs">Tabs</button>
+    <button class="tab-btn" data-tab="history">History</button>
     <button class="tab-btn" data-tab="stats">Stats</button>
     <button class="tab-btn" data-tab="settings">Settings</button>
   </div>
@@ -596,6 +877,16 @@
         </svg>
         Close Old
       </button>
+    </div>
+  </div>
+
+  <div class="tab-content" id="history-panel">
+    <div class="history-header">
+      <span class="history-title">Recently Closed</span>
+      <button class="btn-clear-history" id="clearHistoryBtn">Clear All</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <!-- Deleted tabs will be populated here -->
     </div>
   </div>
 
@@ -652,7 +943,7 @@
     <div class="settings">
       <div class="setting-group">
         <div class="setting-label">
-          <span>🟢 Fresh threshold</span>
+          <span class="threshold-label"><span class="threshold-dot fresh"></span>Fresh threshold</span>
           <span class="setting-value" id="freshValue">5 min</span>
         </div>
         <input type="range" class="slider fresh" id="freshSlider" min="1" max="120" value="5">
@@ -660,7 +951,7 @@
       
       <div class="setting-group">
         <div class="setting-label">
-          <span>🟠 Stale threshold</span>
+          <span class="threshold-label"><span class="threshold-dot stale"></span>Stale threshold</span>
           <span class="setting-value" id="staleValue">30 min</span>
         </div>
         <input type="range" class="slider stale" id="staleSlider" min="2" max="480" value="30">
@@ -668,7 +959,7 @@
       
       <div class="setting-group">
         <div class="setting-label">
-          <span>🔴 Old threshold</span>
+          <span class="threshold-label"><span class="threshold-dot old"></span>Old threshold</span>
           <span class="setting-value" id="oldValue">1 hr</span>
         </div>
         <input type="range" class="slider old" id="oldSlider" min="5" max="1440" value="60">
@@ -707,6 +998,37 @@
             </div>
             <div class="style-name">Badge</div>
           </div>
+        </div>
+      </div>
+      
+      <div class="auto-delete-group">
+        <div class="auto-delete-header">
+          <div class="auto-delete-title">
+            <div class="auto-delete-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+                <line x1="4" y1="4" x2="20" y2="20" stroke-width="2.5"/>
+              </svg>
+            </div>
+            <div class="auto-delete-text">
+              <h3>Auto-Delete</h3>
+              <p>Automatically close inactive tabs</p>
+            </div>
+          </div>
+          <div class="toggle" id="autoDeleteToggle"></div>
+        </div>
+        <div class="auto-delete-settings" id="autoDeleteSettings">
+          <div class="auto-delete-slider-container">
+            <input type="range" class="slider danger" id="autoDeleteSlider" min="5" max="1440" value="60">
+            <div class="auto-delete-value" id="autoDeleteValue">1 hr</div>
+          </div>
+          <p class="setting-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>Pinned tabs and the active tab are always protected. Closed tabs are saved to history for easy recovery.</span>
+          </p>
         </div>
       </div>
     </div>
