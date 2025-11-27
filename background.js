@@ -2,9 +2,9 @@
 // Tracks when tabs were last active and updates their favicons with age indicators
 
 const DEFAULT_SETTINGS = {
-  freshThreshold: 5,       // minutes - green zone
-  staleThreshold: 30,      // minutes - yellow/orange zone  
-  oldThreshold: 60,        // minutes - red zone (1 hour)
+  freshThreshold: 1,       // minutes - green zone (1 min for fast testing)
+  staleThreshold: 2,       // minutes - yellow/orange zone (2 min)
+  oldThreshold: 3,         // minutes - red zone (3 min)
   enabled: true,
   indicatorStyle: 'dot',   // 'dot', 'frame', or 'badge'
   indicatorSize: 12
@@ -390,16 +390,15 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   await saveTabData();
 });
 
-// Periodic update of all tab indicators (every 30 seconds for more responsive color changes)
+// Periodic update of all tab indicators (every 10 seconds for fast color changes)
 setInterval(async () => {
   if (!settings.enabled) return;
   
-  console.log('[TabAge] Periodic update starting...');
   const tabs = await chrome.tabs.query({});
   for (const tab of tabs) {
     await updateTabIndicator(tab.id);
   }
-}, 30000); // Update every 30 seconds
+}, 10000); // Update every 10 seconds
 
 // Handle keyboard commands
 chrome.commands.onCommand.addListener(async (command) => {

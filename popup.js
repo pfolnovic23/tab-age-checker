@@ -209,10 +209,10 @@ function escapeHtml(text) {
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   
-  // Auto-refresh every 5 seconds
+  // Auto-refresh every 2 seconds for real-time updates
   setInterval(() => {
     loadData();
-  }, 5000);
+  }, 2000);
   
   // Tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {
