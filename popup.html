@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tab Age Tracker</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --fresh: #22c55e;
+      --stale: #f59e0b;
+      --old: #ef4444;
+      --bg-primary: #0f1419;
+      --bg-secondary: #1a1f26;
+      --bg-tertiary: #242b33;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #2d3640;
+      --accent: #3b82f6;
+    }
+    
+    body {
+      width: 380px;
+      max-height: 520px;
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+    
+    .header {
+      padding: 16px 18px;
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .header h1 svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .toggle-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      background: var(--bg-tertiary);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border: 1px solid var(--border);
+    }
+    
+    .toggle.active {
+      background: var(--fresh);
+      border-color: var(--fresh);
+    }
+    
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    .toggle.active::after {
+      transform: translateX(18px);
+    }
+    
+    .tabs-nav {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+    }
+    
+    .tab-btn.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+    }
+    
+    .tab-content {
+      display: none;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .tab-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .tab-content::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    
+    .tab-content::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    
+    /* Tabs List */
+    .tabs-list {
+      padding: 8px;
+    }
+    
+    .tab-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid transparent;
+    }
+    
+    .tab-item:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border);
+    }
+    
+    .tab-item.active-tab {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.1);
+    }
+    
+    .tab-favicon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      object-fit: contain;
+      background: var(--bg-tertiary);
+      flex-shrink: 0;
+    }
+    
+    .tab-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .tab-title {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    
+    .tab-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .tab-age {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    .tab-age.fresh {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+    }
+    
+    .tab-age.stale {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+    }
+    
+    .tab-age.old {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+    
+    .tab-url {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+    
+    .tab-close {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    
+    .tab-item:hover .tab-close {
+      opacity: 1;
+    }
+    
+    .tab-close:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+    
+    /* Actions */
+    .actions {
+      padding: 12px;
+      display: flex;
+      gap: 8px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    .btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+    
+    /* Settings */
+    .settings {
+      padding: 16px;
+    }
+    
+    .setting-group {
+      margin-bottom: 20px;
+    }
+    
+    .setting-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .setting-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    
+    .slider-container {
+      position: relative;
+    }
+    
+    .slider {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      outline: none;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg-primary);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .slider.fresh::-webkit-slider-thumb { background: var(--fresh); }
+    .slider.stale::-webkit-slider-thumb { background: var(--stale); }
+    .slider.old::-webkit-slider-thumb { background: var(--old); }
+    
+    /* Style selector */
+    .style-options {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .style-option {
+      flex: 1;
+      padding: 12px 8px;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    
+    .style-option:hover {
+      border-color: var(--text-muted);
+    }
+    
+    .style-option.active {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.1);
+    }
+    
+    .style-icon {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 6px;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .style-name {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    
+    /* Stats */
+    .stats {
+      padding: 16px;
+    }
+    
+    .stat-card {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+    }
+    
+    .stat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .stat-title {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .stat-bar {
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+    }
+    
+    .stat-segment {
+      height: 100%;
+      transition: width 0.3s;
+    }
+    
+    .stat-segment.fresh { background: var(--fresh); }
+    .stat-segment.stale { background: var(--stale); }
+    .stat-segment.old { background: var(--old); }
+    
+    .stat-legend {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .legend-dot.fresh { background: var(--fresh); }
+    .legend-dot.stale { background: var(--stale); }
+    .legend-dot.old { background: var(--old); }
+    
+    /* Shortcuts hint */
+    .shortcuts {
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+    }
+    
+    .shortcut {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    
+    .shortcut:last-child {
+      margin-bottom: 0;
+    }
+    
+    .shortcut kbd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      background: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+    
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12,6 12,12 16,14"/>
+      </svg>
+      Tab Age Tracker
+    </h1>
+    <div class="toggle-container">
+      <span class="toggle-label">Active</span>
+      <div class="toggle active" id="enableToggle"></div>
+    </div>
+  </div>
+  
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="tabs">Tabs</button>
+    <button class="tab-btn" data-tab="stats">Stats</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </nav>
+  
+  <div class="tab-content active" id="tabs-panel">
+    <div class="tabs-list" id="tabsList">
+      <!-- Tabs will be populated here -->
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="sortBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" y1="6" x2="16" y2="6"/>
+          <line x1="4" y1="12" x2="12" y2="12"/>
+          <line x1="4" y1="18" x2="8" y2="18"/>
+          <polyline points="15,15 18,18 21,15"/>
+          <line x1="18" y1="12" x2="18" y2="18"/>
+        </svg>
+        Sort by Age
+      </button>
+      <button class="btn btn-danger" id="closeOldBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3,6 5,6 21,6"/>
+          <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2"/>
+        </svg>
+        Close Old
+      </button>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="stats-panel">
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Total Open Tabs</span>
+          <span class="stat-value" id="totalTabs">0</span>
+        </div>
+        <div class="stat-bar" id="statBar">
+          <div class="stat-segment fresh" style="width: 33%"></div>
+          <div class="stat-segment stale" style="width: 33%"></div>
+          <div class="stat-segment old" style="width: 34%"></div>
+        </div>
+        <div class="stat-legend">
+          <div class="legend-item">
+            <div class="legend-dot fresh"></div>
+            <span id="freshCount">0 fresh</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot stale"></div>
+            <span id="staleCount">0 stale</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot old"></div>
+            <span id="oldCount">0 old</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Oldest Tab</span>
+          <span class="stat-value" id="oldestAge">-</span>
+        </div>
+        <div class="stat-title" id="oldestTitle" style="margin-top: 8px; font-size: 11px;">-</div>
+      </div>
+    </div>
+    
+    <div class="shortcuts">
+      <div class="shortcut">
+        <span>Sort tabs by age</span>
+        <kbd>Alt+Shift+S</kbd>
+      </div>
+      <div class="shortcut">
+        <span>Close old tabs</span>
+        <kbd>Alt+Shift+C</kbd>
+      </div>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="settings-panel">
+    <div class="settings">
+      <div class="setting-group">
+        <div class="setting-label">
+          <span>🟢 Fresh threshold</span>
+          <span class="setting-value" id="freshValue">30 min</span>
+        </div>
+        <input type="range" class="slider fresh" id="freshSlider" min="5" max="120" value="30">
+      </div>
+      
+      <div class="setting-group">
+        <div class="setting-label">
+          <span>🟠 Stale threshold</span>
+          <span class="setting-value" id="staleValue">2 hr</span>
+        </div>
+        <input type="range" class="slider stale" id="staleSlider" min="30" max="480" value="120">
+      </div>
+      
+      <div class="setting-group">
+        <div class="setting-label">
+          <span>🔴 Old threshold</span>
+          <span class="setting-value" id="oldValue">8 hr</span>
+        </div>
+        <input type="range" class="slider old" id="oldSlider" min="60" max="1440" value="480">
+      </div>
+      
+      <div class="setting-group">
+        <div class="setting-label">
+          <span>Indicator Style</span>
+        </div>
+        <div class="style-options">
+          <div class="style-option active" data-style="dot">
+            <div class="style-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20">
+                <rect x="2" y="2" width="16" height="16" rx="2" fill="#374151"/>
+                <circle cx="15" cy="15" r="4" fill="#22c55e"/>
+              </svg>
+            </div>
+            <div class="style-name">Dot</div>
+          </div>
+          <div class="style-option" data-style="ring">
+            <div class="style-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20">
+                <rect x="4" y="4" width="12" height="12" rx="2" fill="#374151"/>
+                <circle cx="10" cy="10" r="8" stroke="#22c55e" stroke-width="2" fill="none"/>
+              </svg>
+            </div>
+            <div class="style-name">Ring</div>
+          </div>
+          <div class="style-option" data-style="badge">
+            <div class="style-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20">
+                <rect x="2" y="4" width="12" height="12" rx="2" fill="#374151"/>
+                <rect x="10" y="2" width="8" height="6" rx="1" fill="#22c55e"/>
+                <text x="14" y="7" font-size="5" fill="white" text-anchor="middle">2h</text>
+              </svg>
+            </div>
+            <div class="style-name">Badge</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
