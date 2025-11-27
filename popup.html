@@ -29,13 +29,16 @@
     
     body {
       width: 400px;
-      max-height: 520px;
+      min-height: 200px;
+      max-height: 600px;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
       overflow: hidden;
       font-size: 13px;
       letter-spacing: -0.01em;
+      display: flex;
+      flex-direction: column;
     }
     
     .header {
@@ -138,12 +141,27 @@
     
     .tab-content {
       display: none;
-      max-height: 460px;
       overflow-y: auto;
     }
     
     .tab-content.active {
-      display: block;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #tabs-panel {
+      flex: 1;
+      max-height: 450px;
+    }
+    
+    #tabs-panel .tabs-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    
+    #stats-panel,
+    #settings-panel {
+      flex: none;
     }
     
     .tab-content::-webkit-scrollbar {
@@ -273,13 +291,14 @@
       color: #f87171;
     }
     
-    /* Actions */
+    /* Actions - Sticky at bottom */
     .actions {
       padding: 12px;
       display: flex;
       gap: 8px;
       background: var(--bg-secondary);
       border-top: 1px solid var(--border);
+      flex-shrink: 0;
     }
     
     .btn {
@@ -579,7 +598,7 @@
       </button>
     </div>
   </div>
-  
+
   <div class="tab-content" id="stats-panel">
     <div class="stats">
       <div class="stat-card">
