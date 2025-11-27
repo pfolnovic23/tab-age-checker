@@ -3,10 +3,15 @@
 let tabsData = [];
 let settings = {};
 
-// Format time duration
+// Format time duration with seconds precision
 function formatDuration(minutes) {
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${Math.floor(minutes)}m`;
+  const totalSeconds = Math.floor(minutes * 60);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  if (minutes < 60) {
+    const mins = Math.floor(minutes);
+    const secs = totalSeconds % 60;
+    return `${mins}m ${secs}s`;
+  }
   if (minutes < 1440) return `${Math.floor(minutes / 60)}h ${Math.floor(minutes % 60)}m`;
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
@@ -209,10 +214,10 @@ function escapeHtml(text) {
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   
-  // Auto-refresh every 2 seconds for real-time updates
+  // Auto-refresh every 1 second for real-time updates
   setInterval(() => {
     loadData();
-  }, 2000);
+  }, 1000);
   
   // Tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {

@@ -390,7 +390,7 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   await saveTabData();
 });
 
-// Periodic update of all tab indicators (every 10 seconds for fast color changes)
+// Periodic update of all tab indicators (every 5 seconds for real-time color changes)
 setInterval(async () => {
   if (!settings.enabled) return;
   
@@ -398,7 +398,7 @@ setInterval(async () => {
   for (const tab of tabs) {
     await updateTabIndicator(tab.id);
   }
-}, 10000); // Update every 10 seconds
+}, 5000); // Update every 5 seconds
 
 // Handle keyboard commands
 chrome.commands.onCommand.addListener(async (command) => {
