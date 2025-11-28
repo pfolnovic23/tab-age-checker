@@ -226,6 +226,33 @@ async function updateTabIndicator(tabId) {
   }
 }
 
+// Restore all favicons to their original state (used when extension is disabled)
+async function restoreAllFavicons() {
+  const tabs = await chrome.tabs.query({});
+  for (const tab of tabs) {
+    if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('chrome-extension://') || 
+        tab.url?.startsWith('brave://') || tab.url?.startsWith('about:')) continue;
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const originalUrl = document.documentElement.getAttribute('data-original-favicon');
+          if (originalUrl) {
+            document.querySelectorAll('link[rel*="icon"]').forEach(el => el.remove());
+            const link = document.createElement('link');
+            link.rel = 'icon';
+            link.href = originalUrl;
+            document.head.appendChild(link);
+            document.documentElement.removeAttribute('data-original-favicon');
+          }
+        }
+      });
+    } catch (e) { /* ignore inaccessible tabs */ }
+  }
+}
+
+// Note: This only affects the favicon of the current PAGE/TAB, not bookmarks.
+// Bookmarks use cached favicons from the browser's favicon database.
 // This function runs in the page context
 function addFaviconIndicator(color, style, size, minutesInactive) {
   console.log('[TabAge] Injected indicator - style:', style, 'color:', color);
@@ -537,6 +564,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         'stale:', newSettings.staleThreshold, 'old:', newSettings.oldThreshold,
         'style:', newSettings.indicatorStyle);
       
+      // If extension was disabled, restore all original favicons
+      if (newSettings.enabled === false) {
+        console.log('[TabAge] Extension disabled - restoring original favicons');
+        await restoreAllFavicons();
+        sendResponse({ success: true });
+        return;
+      }
+      
       // Small delay to ensure storage is fully written
       await new Promise(r => setTimeout(r, 50));
       
@@ -614,6 +649,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Initialize on install/startup
 chrome.runtime.onInstalled.addListener(init);
 chrome.runtime.onStartup.addListener(init);
+
+// Cleanup favicons when browser is closing
+chrome.runtime.onSuspend.addListener(async () => {
+  console.log('[TabAge] Browser suspending - restoring favicons');
+  await restoreAllFavicons();
+});
 
 // Also init immediately
 init();
