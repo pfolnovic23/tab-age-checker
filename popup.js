@@ -439,8 +439,36 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   // Select all text on focus for easy editing
-  document.querySelectorAll('.setting-value').forEach(input => {
+  document.querySelectorAll('.setting-value, .auto-delete-value').forEach(input => {
     input.addEventListener('focus', (e) => e.target.select());
+  });
+  
+  // Stepper button handlers
+  document.querySelectorAll('.stepper-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      const sliderId = btn.dataset.target;
+      const slider = document.getElementById(sliderId);
+      const min = parseInt(slider.min);
+      const max = parseInt(slider.max);
+      let value = parseInt(slider.value);
+      
+      // Determine step size based on current value
+      let step = 1;
+      if (value >= 60) step = 5;
+      if (value >= 120) step = 10;
+      if (value >= 480) step = 30;
+      
+      if (action === 'increase') {
+        value = Math.min(max, value + step);
+      } else {
+        value = Math.max(min, value - step);
+      }
+      
+      slider.value = value;
+      slider.dispatchEvent(new Event('input'));
+      slider.dispatchEvent(new Event('change'));
+    });
   });
   
   // Style options

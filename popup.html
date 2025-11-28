@@ -378,28 +378,63 @@
     .threshold-dot.stale { background: var(--stale); box-shadow: 0 0 6px rgba(251, 191, 36, 0.5); }
     .threshold-dot.old { background: var(--old); box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
     
-    .setting-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--text-primary);
+    .value-stepper {
+      display: flex;
+      align-items: center;
       background: var(--bg-tertiary);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 4px 8px;
-      min-width: 65px;
-      text-align: center;
-      cursor: text;
-      transition: all 0.15s;
+      overflow: hidden;
     }
     
-    .setting-value:hover {
+    .value-stepper:hover {
       border-color: var(--accent);
     }
     
-    .setting-value:focus {
-      outline: none;
+    .value-stepper:focus-within {
       border-color: var(--accent);
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    
+    .stepper-btn {
+      width: 24px;
+      height: 26px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s;
+      flex-shrink: 0;
+    }
+    
+    .stepper-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+    
+    .stepper-btn:active {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .stepper-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+    
+    .setting-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-primary);
+      background: transparent;
+      border: none;
+      padding: 4px 2px;
+      width: 50px;
+      text-align: center;
+      outline: none;
     }
     
     .slider-container {
@@ -819,26 +854,28 @@
     
     .auto-delete-value {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-primary);
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 4px 8px;
-      min-width: 65px;
+      background: transparent;
+      border: none;
+      padding: 4px 2px;
+      width: 50px;
       text-align: center;
-      cursor: text;
-      transition: all 0.15s;
+      outline: none;
     }
     
-    .auto-delete-value:hover {
+    .value-stepper.danger:hover {
       border-color: var(--danger);
     }
     
-    .auto-delete-value:focus {
-      outline: none;
+    .value-stepper.danger:focus-within {
       border-color: var(--danger);
       box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    }
+    
+    .value-stepper.danger .stepper-btn:active {
+      background: var(--danger);
+      color: white;
     }
     
     .setting-hint {
@@ -1012,7 +1049,15 @@
       <div class="setting-group">
         <div class="setting-label">
           <span class="threshold-label"><span class="threshold-dot fresh"></span>Fresh threshold</span>
-          <input type="text" class="setting-value" id="freshValue" value="5 min" data-slider="freshSlider">
+          <div class="value-stepper">
+            <button class="stepper-btn" data-action="decrease" data-target="freshSlider">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            </button>
+            <input type="text" class="setting-value" id="freshValue" value="5 min">
+            <button class="stepper-btn" data-action="increase" data-target="freshSlider">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+            </button>
+          </div>
         </div>
         <div class="slider-container">
           <input type="range" class="slider fresh" id="freshSlider" min="1" max="120" value="5">
@@ -1022,7 +1067,15 @@
       <div class="setting-group">
         <div class="setting-label">
           <span class="threshold-label"><span class="threshold-dot stale"></span>Stale threshold</span>
-          <input type="text" class="setting-value" id="staleValue" value="30 min" data-slider="staleSlider">
+          <div class="value-stepper">
+            <button class="stepper-btn" data-action="decrease" data-target="staleSlider">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            </button>
+            <input type="text" class="setting-value" id="staleValue" value="30 min">
+            <button class="stepper-btn" data-action="increase" data-target="staleSlider">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+            </button>
+          </div>
         </div>
         <div class="slider-container">
           <input type="range" class="slider stale" id="staleSlider" min="2" max="480" value="30">
@@ -1032,7 +1085,15 @@
       <div class="setting-group">
         <div class="setting-label">
           <span class="threshold-label"><span class="threshold-dot old"></span>Old threshold</span>
-          <input type="text" class="setting-value" id="oldValue" value="1 hr" data-slider="oldSlider">
+          <div class="value-stepper">
+            <button class="stepper-btn" data-action="decrease" data-target="oldSlider">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            </button>
+            <input type="text" class="setting-value" id="oldValue" value="1 hr">
+            <button class="stepper-btn" data-action="increase" data-target="oldSlider">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+            </button>
+          </div>
         </div>
         <div class="slider-container">
           <input type="range" class="slider old" id="oldSlider" min="5" max="1440" value="60">
@@ -1095,7 +1156,15 @@
         <div class="auto-delete-settings" id="autoDeleteSettings">
           <div class="auto-delete-slider-label">
             <span>Delete after inactivity</span>
-            <input type="text" class="auto-delete-value" id="autoDeleteValue" value="1 hr">
+            <div class="value-stepper danger">
+              <button class="stepper-btn" data-action="decrease" data-target="autoDeleteSlider">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+              </button>
+              <input type="text" class="auto-delete-value" id="autoDeleteValue" value="1 hr">
+              <button class="stepper-btn" data-action="increase" data-target="autoDeleteSlider">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+              </button>
+            </div>
           </div>
           <div class="auto-delete-slider-container">
             <input type="range" class="slider danger" id="autoDeleteSlider" min="5" max="1440" value="60">
