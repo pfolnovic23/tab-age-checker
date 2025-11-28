@@ -6,7 +6,7 @@ const DEFAULT_SETTINGS = {
   staleThreshold: 2,       // minutes - yellow/orange zone (2 min)
   oldThreshold: 3,         // minutes - red zone (3 min)
   enabled: true,
-  indicatorStyle: 'dot',   // 'dot', 'frame', or 'badge'
+  indicatorStyle: 'dot',   // 'dot' or 'badge'
   indicatorSize: 12,
   autoDeleteEnabled: false, // Auto-delete old tabs
   autoDeleteThreshold: 60   // minutes before auto-delete
@@ -271,17 +271,6 @@ function addFaviconIndicator(color, style, size, minutesInactive) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.stroke();
-    } else if (style === 'frame') {
-      // Rounded square frame around the icon
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      if (ctx.roundRect) {
-        ctx.roundRect(2, 2, 28, 28, 6);
-      } else {
-        ctx.rect(2, 2, 28, 28);
-      }
-      ctx.stroke();
     } else if (style === 'badge') {
       // Top-right badge with time - bigger
       const hours = Math.floor(minutesInactive / 60);
@@ -331,16 +320,6 @@ function addFaviconIndicator(color, style, size, minutesInactive) {
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
-      ctx.stroke();
-    } else if (style === 'frame') {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      if (ctx.roundRect) {
-        ctx.roundRect(2, 2, 28, 28, 6);
-      } else {
-        ctx.rect(2, 2, 28, 28);
-      }
       ctx.stroke();
     } else if (style === 'badge') {
       const hours = Math.floor(minutesInactive / 60);
