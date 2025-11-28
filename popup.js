@@ -362,10 +362,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Enable toggle
   document.getElementById('enableToggle').addEventListener('click', () => {
+    isInteractingWithSettings = true;
     const toggle = document.getElementById('enableToggle');
     const enabled = !toggle.classList.contains('active');
     toggle.classList.toggle('active', enabled);
     saveSettings({ enabled });
+    setTimeout(() => { isInteractingWithSettings = false; }, 500);
   });
   
   // Sort button
@@ -535,20 +537,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // Style options
   document.querySelectorAll('.style-option').forEach(opt => {
     opt.addEventListener('click', () => {
+      isInteractingWithSettings = true;
       document.querySelectorAll('.style-option').forEach(o => o.classList.remove('active'));
       opt.classList.add('active');
       saveSettings({ indicatorStyle: opt.dataset.style });
+      setTimeout(() => { isInteractingWithSettings = false; }, 500);
     });
   });
   
   // Auto-delete toggle
   document.getElementById('autoDeleteToggle').addEventListener('click', () => {
+    isInteractingWithSettings = true;
     const toggle = document.getElementById('autoDeleteToggle');
     const settingsDiv = document.getElementById('autoDeleteSettings');
     const enabled = !toggle.classList.contains('active');
     toggle.classList.toggle('active', enabled);
     settingsDiv.classList.toggle('visible', enabled);
     saveSettings({ autoDeleteEnabled: enabled });
+    setTimeout(() => { isInteractingWithSettings = false; }, 500);
   });
   
   // Auto-delete slider
