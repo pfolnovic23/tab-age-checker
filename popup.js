@@ -3,6 +3,7 @@
 let tabsData = [];
 let settings = {};
 let deletedTabsData = [];
+let isInteractingWithSettings = false;
 
 // Format time duration with seconds precision
 function formatDuration(minutes) {
@@ -279,7 +280,10 @@ async function loadData() {
   
   renderTabs();
   updateStats();
-  updateSettingsUI();
+  // Only update settings UI if user is not currently interacting with sliders
+  if (!isInteractingWithSettings) {
+    updateSettingsUI();
+  }
   loadDeletedTabs();
 }
 
@@ -376,41 +380,87 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
   });
   
-  // Sliders
+  // Track slider interaction to prevent auto-refresh interference
+  document.querySelectorAll('.slider').forEach(slider => {
+    slider.addEventListener('mousedown', () => { isInteractingWithSettings = true; });
+    slider.addEventListener('touchstart', () => { isInteractingWithSettings = true; });
+  });
+  
+  document.addEventListener('mouseup', () => { 
+    setTimeout(() => { isInteractingWithSettings = false; }, 100);
+  });
+  document.addEventListener('touchend', () => { 
+    setTimeout(() => { isInteractingWithSettings = false; }, 100);
+  });
+  
+  // Threshold validation - ensures fresh < stale < old with hard limits
+  function validateThreshold(changedSlider, newValue) {
+    const fresh = parseInt(document.getElementById('freshSlider').value);
+    const stale = parseInt(document.getElementById('staleSlider').value);
+    const old = parseInt(document.getElementById('oldSlider').value);
+    
+    if (changedSlider === 'fresh') {
+      // Fresh can go up to stale - 1
+      const maxFresh = stale - 1;
+      return Math.min(newValue, maxFresh);
+    } else if (changedSlider === 'stale') {
+      // Stale must be between fresh + 1 and old - 1
+      const minStale = fresh + 1;
+      const maxStale = old - 1;
+      return Math.max(minStale, Math.min(newValue, maxStale));
+    } else if (changedSlider === 'old') {
+      // Old must be at least stale + 1
+      const minOld = stale + 1;
+      return Math.max(newValue, minOld);
+    }
+    return newValue;
+  }
+  
+  // Sliders with validation
   document.getElementById('freshSlider').addEventListener('input', (e) => {
-    const value = parseInt(e.target.value);
-    document.getElementById('freshValue').value = formatSliderValue(value);
+    const validated = validateThreshold('fresh', parseInt(e.target.value));
+    e.target.value = validated;
+    document.getElementById('freshValue').value = formatSliderValue(validated);
   });
   
   document.getElementById('freshSlider').addEventListener('change', (e) => {
-    saveSettings({ freshThreshold: parseInt(e.target.value) });
+    const validated = validateThreshold('fresh', parseInt(e.target.value));
+    e.target.value = validated;
+    saveSettings({ freshThreshold: validated });
   });
   
   document.getElementById('staleSlider').addEventListener('input', (e) => {
-    const value = parseInt(e.target.value);
-    document.getElementById('staleValue').value = formatSliderValue(value);
+    const validated = validateThreshold('stale', parseInt(e.target.value));
+    e.target.value = validated;
+    document.getElementById('staleValue').value = formatSliderValue(validated);
   });
   
   document.getElementById('staleSlider').addEventListener('change', (e) => {
-    saveSettings({ staleThreshold: parseInt(e.target.value) });
+    const validated = validateThreshold('stale', parseInt(e.target.value));
+    e.target.value = validated;
+    saveSettings({ staleThreshold: validated });
   });
   
   document.getElementById('oldSlider').addEventListener('input', (e) => {
-    const value = parseInt(e.target.value);
-    document.getElementById('oldValue').value = formatSliderValue(value);
+    const validated = validateThreshold('old', parseInt(e.target.value));
+    e.target.value = validated;
+    document.getElementById('oldValue').value = formatSliderValue(validated);
   });
   
   document.getElementById('oldSlider').addEventListener('change', (e) => {
-    saveSettings({ oldThreshold: parseInt(e.target.value) });
+    const validated = validateThreshold('old', parseInt(e.target.value));
+    e.target.value = validated;
+    saveSettings({ oldThreshold: validated });
   });
   
-  // Editable input fields for thresholds
+  // Editable input fields for thresholds with validation
   document.getElementById('freshValue').addEventListener('change', (e) => {
     const minutes = parseTimeInput(e.target.value);
-    if (minutes !== null && minutes >= 1 && minutes <= 120) {
-      document.getElementById('freshSlider').value = minutes;
-      e.target.value = formatSliderValue(minutes);
-      saveSettings({ freshThreshold: minutes });
+    if (minutes !== null && minutes >= 1) {
+      const validated = validateThreshold('fresh', minutes);
+      document.getElementById('freshSlider').value = validated;
+      e.target.value = formatSliderValue(validated);
+      saveSettings({ freshThreshold: validated });
     } else {
       e.target.value = formatSliderValue(settings.freshThreshold || 5);
     }
@@ -418,10 +468,11 @@ document.addEventListener('DOMContentLoaded', () => {
   
   document.getElementById('staleValue').addEventListener('change', (e) => {
     const minutes = parseTimeInput(e.target.value);
-    if (minutes !== null && minutes >= 2 && minutes <= 480) {
-      document.getElementById('staleSlider').value = minutes;
-      e.target.value = formatSliderValue(minutes);
-      saveSettings({ staleThreshold: minutes });
+    if (minutes !== null && minutes >= 2) {
+      const validated = validateThreshold('stale', minutes);
+      document.getElementById('staleSlider').value = validated;
+      e.target.value = formatSliderValue(validated);
+      saveSettings({ staleThreshold: validated });
     } else {
       e.target.value = formatSliderValue(settings.staleThreshold || 30);
     }
@@ -429,23 +480,31 @@ document.addEventListener('DOMContentLoaded', () => {
   
   document.getElementById('oldValue').addEventListener('change', (e) => {
     const minutes = parseTimeInput(e.target.value);
-    if (minutes !== null && minutes >= 5 && minutes <= 1440) {
-      document.getElementById('oldSlider').value = minutes;
-      e.target.value = formatSliderValue(minutes);
-      saveSettings({ oldThreshold: minutes });
+    if (minutes !== null && minutes >= 3) {
+      const validated = validateThreshold('old', minutes);
+      document.getElementById('oldSlider').value = validated;
+      e.target.value = formatSliderValue(validated);
+      saveSettings({ oldThreshold: validated });
     } else {
       e.target.value = formatSliderValue(settings.oldThreshold || 60);
     }
   });
   
-  // Select all text on focus for easy editing
+  // Select all text on focus for easy editing, and track interaction
   document.querySelectorAll('.setting-value, .auto-delete-value').forEach(input => {
-    input.addEventListener('focus', (e) => e.target.select());
+    input.addEventListener('focus', (e) => {
+      isInteractingWithSettings = true;
+      e.target.select();
+    });
+    input.addEventListener('blur', () => {
+      setTimeout(() => { isInteractingWithSettings = false; }, 100);
+    });
   });
   
   // Stepper button handlers
   document.querySelectorAll('.stepper-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      isInteractingWithSettings = true;
       const action = btn.dataset.action;
       const sliderId = btn.dataset.target;
       const slider = document.getElementById(sliderId);
@@ -468,6 +527,8 @@ document.addEventListener('DOMContentLoaded', () => {
       slider.value = value;
       slider.dispatchEvent(new Event('input'));
       slider.dispatchEvent(new Event('change'));
+      
+      setTimeout(() => { isInteractingWithSettings = false; }, 100);
     });
   });
   
