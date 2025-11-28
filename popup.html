@@ -381,38 +381,67 @@
     .setting-value {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      color: var(--text-muted);
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      min-width: 65px;
+      text-align: center;
+      cursor: text;
+      transition: all 0.15s;
+    }
+    
+    .setting-value:hover {
+      border-color: var(--accent);
+    }
+    
+    .setting-value:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
     }
     
     .slider-container {
       position: relative;
+      margin-top: 4px;
     }
     
     .slider {
       width: 100%;
-      height: 6px;
+      height: 8px;
       -webkit-appearance: none;
       appearance: none;
       background: var(--bg-tertiary);
-      border-radius: 3px;
+      border-radius: 4px;
       outline: none;
+      border: 1px solid var(--border);
     }
     
     .slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: var(--accent);
       cursor: pointer;
-      border: 2px solid var(--bg-primary);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: 3px solid var(--bg-primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      transition: transform 0.1s;
     }
     
-    .slider.fresh::-webkit-slider-thumb { background: var(--fresh); }
-    .slider.stale::-webkit-slider-thumb { background: var(--stale); }
-    .slider.old::-webkit-slider-thumb { background: var(--old); }
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+    
+    .slider::-webkit-slider-thumb:active {
+      transform: scale(0.95);
+    }
+    
+    .slider.fresh::-webkit-slider-thumb { background: var(--fresh); box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4); }
+    .slider.stale::-webkit-slider-thumb { background: var(--stale); box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4); }
+    .slider.old::-webkit-slider-thumb { background: var(--old); box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
     
     /* Style selector */
     .style-options {
@@ -770,25 +799,46 @@
       display: block;
     }
     
-    .auto-delete-slider-container {
+    .auto-delete-slider-label {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
+      margin-bottom: 8px;
     }
     
-    .auto-delete-slider-container .slider {
-      flex: 1;
+    .auto-delete-slider-label span {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    
+    .auto-delete-slider-container {
+      position: relative;
+      margin-top: 4px;
     }
     
     .auto-delete-value {
-      min-width: 60px;
-      padding: 6px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-primary);
       background: var(--bg-tertiary);
+      border: 1px solid var(--border);
       border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--danger);
+      padding: 4px 8px;
+      min-width: 65px;
       text-align: center;
+      cursor: text;
+      transition: all 0.15s;
+    }
+    
+    .auto-delete-value:hover {
+      border-color: var(--danger);
+    }
+    
+    .auto-delete-value:focus {
+      outline: none;
+      border-color: var(--danger);
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
     }
     
     .setting-hint {
@@ -810,26 +860,44 @@
     }
     
     .slider.danger {
-      height: 6px;
+      width: 100%;
+      height: 8px;
+      -webkit-appearance: none;
+      appearance: none;
       background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      outline: none;
     }
     
     .slider.danger::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
-      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+      background: var(--danger);
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
       cursor: pointer;
-      border: 2px solid var(--bg-primary);
+      border: 3px solid var(--bg-primary);
+      transition: transform 0.1s;
+      margin-top: 0;
+    }
+    
+    .slider.danger::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+    
+    .slider.danger::-webkit-slider-thumb:active {
+      transform: scale(0.95);
     }
     
     .slider.danger::-webkit-slider-runnable-track {
-      height: 6px;
+      width: 100%;
+      height: 8px;
       background: var(--bg-tertiary);
-      border-radius: 3px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
     }
   </style>
 </head>
@@ -944,25 +1012,31 @@
       <div class="setting-group">
         <div class="setting-label">
           <span class="threshold-label"><span class="threshold-dot fresh"></span>Fresh threshold</span>
-          <span class="setting-value" id="freshValue">5 min</span>
+          <input type="text" class="setting-value" id="freshValue" value="5 min" data-slider="freshSlider">
         </div>
-        <input type="range" class="slider fresh" id="freshSlider" min="1" max="120" value="5">
+        <div class="slider-container">
+          <input type="range" class="slider fresh" id="freshSlider" min="1" max="120" value="5">
+        </div>
       </div>
       
       <div class="setting-group">
         <div class="setting-label">
           <span class="threshold-label"><span class="threshold-dot stale"></span>Stale threshold</span>
-          <span class="setting-value" id="staleValue">30 min</span>
+          <input type="text" class="setting-value" id="staleValue" value="30 min" data-slider="staleSlider">
         </div>
-        <input type="range" class="slider stale" id="staleSlider" min="2" max="480" value="30">
+        <div class="slider-container">
+          <input type="range" class="slider stale" id="staleSlider" min="2" max="480" value="30">
+        </div>
       </div>
       
       <div class="setting-group">
         <div class="setting-label">
           <span class="threshold-label"><span class="threshold-dot old"></span>Old threshold</span>
-          <span class="setting-value" id="oldValue">1 hr</span>
+          <input type="text" class="setting-value" id="oldValue" value="1 hr" data-slider="oldSlider">
         </div>
-        <input type="range" class="slider old" id="oldSlider" min="5" max="1440" value="60">
+        <div class="slider-container">
+          <input type="range" class="slider old" id="oldSlider" min="5" max="1440" value="60">
+        </div>
       </div>
       
       <div class="setting-group">
@@ -1019,9 +1093,12 @@
           <div class="toggle" id="autoDeleteToggle"></div>
         </div>
         <div class="auto-delete-settings" id="autoDeleteSettings">
+          <div class="auto-delete-slider-label">
+            <span>Delete after inactivity</span>
+            <input type="text" class="auto-delete-value" id="autoDeleteValue" value="1 hr">
+          </div>
           <div class="auto-delete-slider-container">
             <input type="range" class="slider danger" id="autoDeleteSlider" min="5" max="1440" value="60">
-            <div class="auto-delete-value" id="autoDeleteValue">1 hr</div>
           </div>
           <p class="setting-hint">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

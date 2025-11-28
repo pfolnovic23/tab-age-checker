@@ -48,6 +48,32 @@ function formatSliderValue(minutes) {
   return hours > 0 ? `${days}d ${hours}h` : `${days} day`;
 }
 
+// Parse user input to minutes (supports: "30", "30m", "30 min", "1h", "1 hr", "1h 30m", "2d", etc.)
+function parseTimeInput(input) {
+  const str = input.trim().toLowerCase();
+  
+  // Try parsing as just a number (assume minutes)
+  if (/^\d+$/.test(str)) {
+    return parseInt(str);
+  }
+  
+  let totalMinutes = 0;
+  
+  // Match days
+  const dayMatch = str.match(/(\d+)\s*d/);
+  if (dayMatch) totalMinutes += parseInt(dayMatch[1]) * 1440;
+  
+  // Match hours
+  const hourMatch = str.match(/(\d+)\s*h/);
+  if (hourMatch) totalMinutes += parseInt(hourMatch[1]) * 60;
+  
+  // Match minutes
+  const minMatch = str.match(/(\d+)\s*m(?:in)?/);
+  if (minMatch) totalMinutes += parseInt(minMatch[1]);
+  
+  return totalMinutes > 0 ? totalMinutes : null;
+}
+
 // Get age class
 function getAgeClass(minutesInactive) {
   if (minutesInactive <= settings.freshThreshold) return 'fresh';
@@ -263,9 +289,9 @@ function updateSettingsUI() {
   document.getElementById('staleSlider').value = settings.staleThreshold || 120;
   document.getElementById('oldSlider').value = settings.oldThreshold || 480;
   
-  document.getElementById('freshValue').textContent = formatSliderValue(settings.freshThreshold || 30);
-  document.getElementById('staleValue').textContent = formatSliderValue(settings.staleThreshold || 120);
-  document.getElementById('oldValue').textContent = formatSliderValue(settings.oldThreshold || 480);
+  document.getElementById('freshValue').value = formatSliderValue(settings.freshThreshold || 30);
+  document.getElementById('staleValue').value = formatSliderValue(settings.staleThreshold || 120);
+  document.getElementById('oldValue').value = formatSliderValue(settings.oldThreshold || 480);
   
   // Update toggle
   const toggle = document.getElementById('enableToggle');
@@ -294,7 +320,7 @@ function updateSettingsUI() {
   }
   
   autoDeleteSlider.value = settings.autoDeleteThreshold || 60;
-  document.getElementById('autoDeleteValue').textContent = formatSliderValue(settings.autoDeleteThreshold || 60);
+  document.getElementById('autoDeleteValue').value = formatSliderValue(settings.autoDeleteThreshold || 60);
 }
 
 // Save settings
@@ -353,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sliders
   document.getElementById('freshSlider').addEventListener('input', (e) => {
     const value = parseInt(e.target.value);
-    document.getElementById('freshValue').textContent = formatSliderValue(value);
+    document.getElementById('freshValue').value = formatSliderValue(value);
   });
   
   document.getElementById('freshSlider').addEventListener('change', (e) => {
@@ -362,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   document.getElementById('staleSlider').addEventListener('input', (e) => {
     const value = parseInt(e.target.value);
-    document.getElementById('staleValue').textContent = formatSliderValue(value);
+    document.getElementById('staleValue').value = formatSliderValue(value);
   });
   
   document.getElementById('staleSlider').addEventListener('change', (e) => {
@@ -371,11 +397,50 @@ document.addEventListener('DOMContentLoaded', () => {
   
   document.getElementById('oldSlider').addEventListener('input', (e) => {
     const value = parseInt(e.target.value);
-    document.getElementById('oldValue').textContent = formatSliderValue(value);
+    document.getElementById('oldValue').value = formatSliderValue(value);
   });
   
   document.getElementById('oldSlider').addEventListener('change', (e) => {
     saveSettings({ oldThreshold: parseInt(e.target.value) });
+  });
+  
+  // Editable input fields for thresholds
+  document.getElementById('freshValue').addEventListener('change', (e) => {
+    const minutes = parseTimeInput(e.target.value);
+    if (minutes !== null && minutes >= 1 && minutes <= 120) {
+      document.getElementById('freshSlider').value = minutes;
+      e.target.value = formatSliderValue(minutes);
+      saveSettings({ freshThreshold: minutes });
+    } else {
+      e.target.value = formatSliderValue(settings.freshThreshold || 5);
+    }
+  });
+  
+  document.getElementById('staleValue').addEventListener('change', (e) => {
+    const minutes = parseTimeInput(e.target.value);
+    if (minutes !== null && minutes >= 2 && minutes <= 480) {
+      document.getElementById('staleSlider').value = minutes;
+      e.target.value = formatSliderValue(minutes);
+      saveSettings({ staleThreshold: minutes });
+    } else {
+      e.target.value = formatSliderValue(settings.staleThreshold || 30);
+    }
+  });
+  
+  document.getElementById('oldValue').addEventListener('change', (e) => {
+    const minutes = parseTimeInput(e.target.value);
+    if (minutes !== null && minutes >= 5 && minutes <= 1440) {
+      document.getElementById('oldSlider').value = minutes;
+      e.target.value = formatSliderValue(minutes);
+      saveSettings({ oldThreshold: minutes });
+    } else {
+      e.target.value = formatSliderValue(settings.oldThreshold || 60);
+    }
+  });
+  
+  // Select all text on focus for easy editing
+  document.querySelectorAll('.setting-value').forEach(input => {
+    input.addEventListener('focus', (e) => e.target.select());
   });
   
   // Style options
@@ -400,12 +465,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-delete slider
   document.getElementById('autoDeleteSlider').addEventListener('input', (e) => {
     const value = parseInt(e.target.value);
-    document.getElementById('autoDeleteValue').textContent = formatSliderValue(value);
+    document.getElementById('autoDeleteValue').value = formatSliderValue(value);
   });
   
   document.getElementById('autoDeleteSlider').addEventListener('change', (e) => {
     saveSettings({ autoDeleteThreshold: parseInt(e.target.value) });
   });
+  
+  // Auto-delete editable input
+  document.getElementById('autoDeleteValue').addEventListener('change', (e) => {
+    const minutes = parseTimeInput(e.target.value);
+    if (minutes !== null && minutes >= 5 && minutes <= 1440) {
+      document.getElementById('autoDeleteSlider').value = minutes;
+      e.target.value = formatSliderValue(minutes);
+      saveSettings({ autoDeleteThreshold: minutes });
+    } else {
+      e.target.value = formatSliderValue(settings.autoDeleteThreshold || 60);
+    }
+  });
+  
+  document.getElementById('autoDeleteValue').addEventListener('focus', (e) => e.target.select());
   
   // Clear history button
   document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
