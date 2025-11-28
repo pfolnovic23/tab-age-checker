@@ -332,6 +332,48 @@ function addFaviconIndicator(color, style, size, minutesInactive) {
     link.setAttribute('data-tab-age-tracker', Date.now().toString());
     document.head.appendChild(link);
     console.log('[TabAge] Favicon updated with style:', style);
+    
+    // Set up self-cleanup watchdog using timestamp-based detection
+    // The extension updates data-tab-age-tracker timestamp every ~5 seconds
+    // If timestamp becomes stale (>15 seconds old), extension is gone
+    if (!window._tabAgeWatchdog) {
+      const restoreOriginalFavicon = () => {
+        if (window._tabAgeWatchdog) {
+          clearInterval(window._tabAgeWatchdog);
+          window._tabAgeWatchdog = null;
+        }
+        const originalUrl = document.documentElement.getAttribute('data-original-favicon');
+        if (originalUrl) {
+          document.querySelectorAll('link[rel*="icon"]').forEach(el => el.remove());
+          const restoreLink = document.createElement('link');
+          restoreLink.rel = 'icon';
+          restoreLink.href = originalUrl;
+          document.head.appendChild(restoreLink);
+          document.documentElement.removeAttribute('data-original-favicon');
+          console.log('[TabAge] Extension inactive - favicon restored');
+        }
+      };
+      
+      window._tabAgeWatchdog = setInterval(() => {
+        const currentFavicon = document.querySelector('link[data-tab-age-tracker]');
+        if (!currentFavicon) {
+          // Favicon was removed, restore original
+          restoreOriginalFavicon();
+          return;
+        }
+        
+        const lastUpdate = parseInt(currentFavicon.getAttribute('data-tab-age-tracker') || '0');
+        const now = Date.now();
+        const staleness = now - lastUpdate;
+        
+        // If favicon hasn't been updated in 15 seconds, extension is likely gone
+        // (extension normally updates every 5 seconds)
+        if (staleness > 15000) {
+          console.log('[TabAge] Favicon stale for', staleness, 'ms - restoring');
+          restoreOriginalFavicon();
+        }
+      }, 5000); // Check every 5 seconds
+    }
   };
   
   img.onerror = () => {
@@ -533,6 +575,12 @@ async function closeOldTabs() {
 
 // Message handler for popup communication
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Ping handler for watchdog - just respond to confirm extension is alive
+  if (message.type === 'ping') {
+    sendResponse({ alive: true });
+    return;
+  }
+  
   if (message.type === 'getTabData') {
     chrome.tabs.query({}).then(tabs => {
       const result = tabs.map(tab => ({
